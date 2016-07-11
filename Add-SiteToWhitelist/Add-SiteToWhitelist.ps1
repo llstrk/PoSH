@@ -44,15 +44,15 @@ foreach ($Website in $Websites) {
     
     # Create XML element Shortcut
     $NewShortcut = $GPO.CreateElement("Shortcut")
-    $NewShortcut.SetAttribute('clsid',"{$ShortcutClsid}")
+    $NewShortcut.SetAttribute('clsid',"{4F2F7C55-2790-433e-8127-0739D1CFA327}")
     $NewShortcut.SetAttribute('name',"$($Website.Name)")
     $NewShortcut.SetAttribute('status',"$($Website.Name)")
     $NewShortcut.SetAttribute('image','1')
+    $NewShortcut.SetAttribute('changed',"$Timestamp")
+    $NewShortcut.SetAttribute('uid',"{$NodeId}")
     $NewShortcut.SetAttribute('removePolicy','1')
     $NewShortcut.SetAttribute('userContext','1')
     $NewShortcut.SetAttribute('bypassErrors','1')
-    $NewShortcut.SetAttribute('changed',"$Timestamp")
-    $NewShortcut.SetAttribute('uid',"{$NodeId}")
     
     # Create XML element Properties
     $NewProperty = $GPO.CreateElement("Properties")
@@ -66,11 +66,11 @@ foreach ($Website in $Websites) {
     $NewProperty.SetAttribute('iconIndex','0')
     $NewProperty.SetAttribute('targetPath',$($Website.Url))
     $NewProperty.SetAttribute('iconPath','')
-    $NewProperty.SetAttribute('windows','')
+    $NewProperty.SetAttribute('window','')
     $NewProperty.SetAttribute('shortcutPath',"%FavoritesDir%\Links\$($Website.Name)")
     
     $GPO.Shortcuts.AppendChild($NewShortcut)
-    $GPO.Shortcuts.Shortcut.Where({$_.uid -like "*$NodeID*"}).AppendChild($NewProperty)
+    @($GPO.Shortcuts.Shortcut).Where({$_.uid -like "*$NodeID*"}).AppendChild($NewProperty)
 }
 
 $GPO.Save("\\$Env:USERDOMAIN\SYSVOL\$Env:USERDNSDOMAIN\Policies\{$($GPOItem.Id.Guid)}\User\Preferences\Shortcuts\Shortcuts.xml")
