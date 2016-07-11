@@ -36,8 +36,6 @@ foreach ($Child in $ChildNodes) {
 }
 
 # Add each link to bookmarks bar
-$ShortcutClsid = ([guid]::NewGuid()).Guid
-
 foreach ($Website in $Websites) {
     $Timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $NodeId = ([guid]::NewGuid()).Guid
