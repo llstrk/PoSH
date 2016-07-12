@@ -1,5 +1,5 @@
-$Websites = Import-Csv -Path C:\GPO\Whitelist.csv -Delimiter ';'
 $GPOName = 'TestMKS-Override'
+$WhitelistPath = 'C:\GPO\Whitelist.csv'
 
 
 # Remove previous values from ProxyOverride
@@ -23,24 +23,25 @@ $params = @{
 }
 Set-GPPrefRegistryValue @params
 
-
-## Add links to bookmarks bar ##
-
+# Add links to bookmarks bar
 $GPOItem = Get-GPO -Name $GPOName
+
+# Get contents from Shortcuts.xml in the GPO specified in variable $GPOName
 [xml]$GPO = Get-Content "\\$Env:USERDOMAIN\SYSVOL\$Env:USERDNSDOMAIN\Policies\{$($GPOItem.Id.Guid)}\User\Preferences\Shortcuts\Shortcuts.xml"
 
-# First, remove the old values
+# First, remove any old values from the XML in Shortcuts element 
 $ChildNodes = $GPO.SelectNodes('//Shortcuts/Shortcut')
 foreach ($Child in $ChildNodes) {
     [void]$Child.ParentNode.RemoveChild($Child)
 }
 
-# Add each link to bookmarks bar
+# Add each bookmark to XML in Shortcuts element
+$Websites = Import-Csv -Path $WhitelistPath -Delimiter ';'
 foreach ($Website in $Websites) {
     $Timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
     $NodeId = ([guid]::NewGuid()).Guid
     
-    # Create XML element Shortcut
+    # Create new XML element 'Shortcut'
     $NewShortcut = $GPO.CreateElement("Shortcut")
     $NewShortcut.SetAttribute('clsid',"{4F2F7C55-2790-433e-8127-0739D1CFA327}")
     $NewShortcut.SetAttribute('name',"$($Website.Name)")
@@ -52,7 +53,7 @@ foreach ($Website in $Websites) {
     $NewShortcut.SetAttribute('userContext','1')
     $NewShortcut.SetAttribute('bypassErrors','1')
     
-    # Create XML element Properties
+    # Create new XML element 'Properties'
     $NewProperty = $GPO.CreateElement("Properties")
     $NewProperty.SetAttribute('pidl','')
     $NewProperty.SetAttribute('targetType','URL')
@@ -67,8 +68,12 @@ foreach ($Website in $Websites) {
     $NewProperty.SetAttribute('window','')
     $NewProperty.SetAttribute('shortcutPath',"%FavoritesDir%\Links\$($Website.Name)")
     
+    # Append new XML child element 'Shortcut' to element 'Shortcuts'
     $GPO.Shortcuts.AppendChild($NewShortcut)
+
+    # Append new XML child element 'Properties' to element where 'Shortcut' uid matches $NodeID
     @($GPO.Shortcuts.Shortcut).Where({$_.uid -like "*$NodeID*"}).AppendChild($NewProperty)
 }
 
+# Save changes to Shortcuts.xml in the GPO specified in variable $GPOName
 $GPO.Save("\\$Env:USERDOMAIN\SYSVOL\$Env:USERDNSDOMAIN\Policies\{$($GPOItem.Id.Guid)}\User\Preferences\Shortcuts\Shortcuts.xml")
